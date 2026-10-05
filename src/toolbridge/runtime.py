@@ -159,7 +159,7 @@ class Session:
     def popup(self) -> str | None:
         with self.lock:
             dlg = self._modal()
-            if not dlg:
+            if not dlg or match(dlg, auto_id="1148"):   # none, or a file dialog (a file_dialog step handles it)
                 return None
             text = " ".join(t.window_text() for t in dlg.descendants(control_type="Text") if t.window_text())
             for name in ("OK", "Cancel", "Close", "Yes"):

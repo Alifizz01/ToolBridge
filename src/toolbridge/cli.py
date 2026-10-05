@@ -67,6 +67,22 @@ def _cmd_run(a) -> int:
     return 0 if r.ok else 1
 
 
+def _cmd_record(a) -> int:
+    from .record import Recorder, review, save_workflow
+    proj = Project(a.project)
+    session = _session(proj).start()
+    rec = Recorder(session)
+    rec.start()
+    input(f"Recording '{a.name}'. Do the workflow in {session.target['window']} now, "
+          "then press Enter here... ")
+    steps = rec.stop()
+    if not steps:
+        raise ToolBridgeError("Nothing was recorded (no clicks or value changes in the app)")
+    wf = review(steps, a.name)
+    print(f"-> {save_workflow(proj, wf)}")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="toolbridge", description=__doc__)
     ap.add_argument("--version", action="version", version=f"toolbridge {__version__}")
@@ -81,9 +97,11 @@ def main(argv=None) -> int:
     p = sub.add_parser("run", help="run a recorded workflow: toolbridge run flash ecu=ECU1 hex_file=app.hex")
     p.add_argument("name"); p.add_argument("params", nargs="*")
     p.add_argument("--project", default="toolbridge-project")
+    p = sub.add_parser("record", help="record a workflow by doing it once in the app")
+    p.add_argument("name"); p.add_argument("--project", default="toolbridge-project")
     a = ap.parse_args(argv)
     try:
-        return {"inspect": _cmd_inspect, "scan": _cmd_scan, "run": _cmd_run}[a.cmd](a)
+        return {"inspect": _cmd_inspect, "scan": _cmd_scan, "run": _cmd_run, "record": _cmd_record}[a.cmd](a)
     except ToolBridgeError as exc:
         print(f"toolbridge: {exc}", file=sys.stderr)
         return 1
