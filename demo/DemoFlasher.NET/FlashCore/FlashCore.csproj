@@ -1,0 +1,4 @@
+<!-- demo/DemoFlasher.NET/FlashCore/FlashCore.csproj -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net8.0</TargetFramework><Nullable>disable</Nullable></PropertyGroup>
+</Project>
