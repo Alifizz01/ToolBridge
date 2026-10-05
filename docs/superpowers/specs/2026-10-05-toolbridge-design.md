@@ -31,11 +31,30 @@ so there is no extra dependency.
 ## Pipeline
 
 ```
+ ⓪ toolbridge inspect  <install-folder>             -> which DLLs the app uses, their functions; pick some
  ① toolbridge scan     <app.exe> [--dll ...]        -> project/target.json
  ② toolbridge record   <workflow-name>              -> project/workflows/<name>.yaml
  ③ toolbridge generate                              -> project/<tool>_api/   (Python package)
  ④ toolbridge serve                                 -> REST API + Studio on 127.0.0.1:8750
 ```
+
+### ⓪ Folder scan: "which DLL is the one that matters?"
+
+`toolbridge inspect <install-folder>` (and the Studio's first page) lists every `.dll`/`.exe` under the
+folder without running anything:
+
+```
+ DLL                     kind     bit  used by app.exe   functions   e.g.
+ FlashCore.dll           .NET     x86  yes (direct)      42 methods  FlashService.Program(string, string)
+ flashcore_native.dll    native   x86  yes (direct)      6 exports   int Flash(const char*, int)
+ Newtonsoft.Json.dll     .NET     any  yes (via FlashCore)  -        third-party, hidden by default
+ msvcp140.dll            native   x86  yes               -           system runtime, hidden by default
+```
+
+- **"Used by the app"** comes from the import tables. For .NET that's `AssemblyRef`; for native it's the PE import directory. It's followed transitively from the chosen exe, so the DLLs the app really loads come first.
+- Known runtime and third-party libraries (MSVC runtime, `System.*`, `Microsoft.*`, Newtonsoft, Qt, by name and publisher) are collapsed by default.
+- `toolbridge inspect <folder> --dll FlashCore.dll` shows the full function list of one DLL: public types and methods with signatures (.NET) or demangled exports (native). Picking a DLL writes it into `toolbridge.yaml` as `dlls: [...]`, and `scan` then uses those.
+- This step needs no running app, so it also works on a machine without the hardware.
 
 A **project** is one folder per tool: `toolbridge.yaml` (app path, deny-list, timeouts), `target.json`,
 `workflows/`, the generated package, and `runs/` (logs, failure screenshots).
@@ -47,6 +66,7 @@ A **project** is one folder per tool: `toolbridge.yaml` (app path, deny-list, ti
 | `scan/ui.py` | launches or attaches to the app and walks the UIA tree. Each control becomes `{id, type, label, automation_id, path, window}` | pywinauto |
 | `scan/binary.py` | reads the PE header: .NET or native, 32 or 64-bit | pefile |
 | `scan/dotnet.py` | WinForms: event wiring in `InitializeComponent` gives `control -> handler`. The handler's IL gives the methods it calls, skipping `System.Windows.Forms.*` and `MessageBox` calls, which leaves `action methods` with their signatures. WPF: handlers matched by name, report only | dnfile, dncil |
+| `scan/inspect.py` | the folder scan: walks the folder, classifies each binary through `binary.py`, builds the import graph from the chosen exe, hides runtime libraries, and lists functions through `dotnet.py`/`native.py` | pefile, dnfile |
 | `scan/native.py` | exports, demangled to signatures, report only | pefile, dbghelp |
 | `record.py` | subscribes to UIA events (Invoke, ValueChanged, SelectionItem, window opened) and writes the steps. A terminal review then marks which values are parameters and picks the result check (it suggests the text that changed last) | pywinauto / comtypes |
 | `runtime.py` | what generated code calls: `App` (start or attach), `find(locator)`, step executors, waits, the popup watcher, failure screenshots, the call lock | pywinauto |
@@ -90,7 +110,7 @@ result: {target: lblStatus, ok: "^Done"}
 
 - `demo/DemoFlasher.NET`, C# WinForms (net8.0-windows):
   - controls: ECU combo, Browse + path box, Flash button, progress bar, status label
-  - `FlashService.Program(string path, string ecu)` simulates a flash in about 3 s
+  - `FlashService.Program(string path, string ecu)` lives in a separate class library, `FlashCore.dll`, as real vendor tools do. It simulates a flash in about 3 s
   - a checkbox "simulate no response" makes it show an error popup
 - `demo/DemoFlasher.Native`, a C++ Win32 window with the same controls, plus `flashcore.dll` exporting `?Flash@@YAHPBDH@Z`-style C++ functions.
 
@@ -100,6 +120,7 @@ pytest runs on `windows-latest`, which has an interactive desktop:
 - The scan finds every expected control in both demos.
 - .NET tracing resolves `btnFlash -> FlashService.Program(string, string)`.
 - Native exports are demangled correctly.
+- The folder scan of the demo's build folder ranks `FlashCore.dll` and `flashcore_native.dll` as "used by app", hides the runtime DLLs, and lists their functions.
 - Replaying a stored workflow file through the Python API, REST, and the direct variant, in both the success case and the error-popup case. Recording is tested by playing synthetic UIA input and checking the YAML.
 - Locator fallback, timeout, deny-list, and the bitness-mismatch message.
 
