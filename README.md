@@ -1,8 +1,9 @@
 <p align="center">
-  <img src="docs/logo.svg" width="96" alt="ToolBridge logo: an arch bridge">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo/toolbridge-logo-dark.svg">
+    <img src="docs/logo/toolbridge-logo.svg" width="380" alt="ToolBridge">
+  </picture>
 </p>
-
-<h1 align="center">ToolBridge</h1>
 
 <p align="center"><b>An API for Windows tools that never got one.</b></p>
 
