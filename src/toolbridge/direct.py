@@ -34,6 +34,8 @@ def _load(assembly: Path):
 
 def call(assembly: Path, full_name: str, *args):
     from .scan.binary import classify
+    if not Path(assembly).is_file():
+        raise ToolBridgeError(f"{assembly} does not exist any more; rerun: toolbridge scan")
     check_bitness(classify(Path(assembly)).bits)
     asm = _load(assembly)
     type_name, method_name = full_name.rsplit(".", 1)

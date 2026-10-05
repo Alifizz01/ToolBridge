@@ -77,6 +77,7 @@ def launch(app: Path):
 
 def scan(project: Project, app: Path, dlls: list[Path], window=None) -> dict:
     from .binary import classify
+    app, dlls = Path(app).resolve(), [Path(d).resolve() for d in dlls]
     proc = None
     if window is None:
         proc, window = launch(app)

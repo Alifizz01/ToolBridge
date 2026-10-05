@@ -83,6 +83,18 @@ def _cmd_record(a) -> int:
     return 0
 
 
+def _cmd_generate(a) -> int:
+    from .generate import generate
+    proj = Project(a.project)
+    pkg = generate(proj, a.package)
+    print(f"-> {pkg}")
+    print()
+    print(f'    import sys; sys.path.insert(0, r"{pkg.parent}")')
+    print(f"    from {pkg.name} import Tool")
+    print("    tool = Tool()   # then tool.<workflow>(...), tool.click_<id>(), tool.read_<id>()")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="toolbridge", description=__doc__)
     ap.add_argument("--version", action="version", version=f"toolbridge {__version__}")
@@ -99,9 +111,11 @@ def main(argv=None) -> int:
     p.add_argument("--project", default="toolbridge-project")
     p = sub.add_parser("record", help="record a workflow by doing it once in the app")
     p.add_argument("name"); p.add_argument("--project", default="toolbridge-project")
+    p = sub.add_parser("generate", help="write the Python package for this tool")
+    p.add_argument("--package"); p.add_argument("--project", default="toolbridge-project")
     a = ap.parse_args(argv)
     try:
-        return {"inspect": _cmd_inspect, "scan": _cmd_scan, "run": _cmd_run, "record": _cmd_record}[a.cmd](a)
+        return {"inspect": _cmd_inspect, "scan": _cmd_scan, "run": _cmd_run, "record": _cmd_record, "generate": _cmd_generate}[a.cmd](a)
     except ToolBridgeError as exc:
         print(f"toolbridge: {exc}", file=sys.stderr)
         return 1
