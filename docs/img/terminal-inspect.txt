@@ -1,0 +1,6 @@
+file                              kind     bit   used by app               functions
+DemoFlasher.exe                   apphost  x64   app                       -
+DemoFlasher.dll                   dotnet   any   app                       -
+FlashCore.dll                     dotnet   any   direct                    2
+
+Pick one:  toolbridge inspect FOLDER --dll NAME.dll

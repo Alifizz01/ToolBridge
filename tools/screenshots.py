@@ -53,10 +53,31 @@ def project(base: Path, name: str, exe: Path, dlls: list[Path], workflows: list[
     return p
 
 
+def shot(page, path: Path) -> None:
+    """Screenshot the page down to the end of its content, not the empty viewport below."""
+    page.evaluate("window.scrollTo(0, 0)")
+    height = page.evaluate("Math.ceil(document.querySelector('main').getBoundingClientRect().bottom) + 20")
+    page.screenshot(path=path, clip={"x": 0, "y": 0, "width": 1180, "height": height}, full_page=True)
+
+
+def capture(window, path: Path) -> None:
+    """The window as drawn: DWM's frame bounds, without the invisible resize borders."""
+    import ctypes
+    import ctypes.wintypes
+    from PIL import ImageGrab
+    window.set_focus()
+    time.sleep(0.3)
+    rect = ctypes.wintypes.RECT()
+    ctypes.windll.dwmapi.DwmGetWindowAttribute(ctypes.wintypes.HWND(window.handle), 9,   # EXTENDED_FRAME_BOUNDS
+                                               ctypes.byref(rect), ctypes.sizeof(rect))
+    ImageGrab.grab(bbox=(rect.left, rect.top, rect.right, rect.bottom), all_screens=True).save(path)
+
+
 def main() -> None:
     IMG.mkdir(parents=True, exist_ok=True)
     base = Path(tempfile.mkdtemp(prefix="toolbridge-shots-"))
-    hexf = base / "app_v2.1.hex"
+    Path("C:/fw").mkdir(exist_ok=True)                  # a short, realistic path for the images
+    hexf = Path("C:/fw/app_v2.1.hex")
     hexf.write_bytes(b":10000000" + b"0" * 32 + b"\n" * 4000)
 
     (IMG / "terminal-inspect.txt").write_text(cli("inspect", OUT / "net", "--project", base / "cli"), encoding="utf-8")
@@ -79,27 +100,30 @@ def main() -> None:
 
         with sync_playwright() as pw:
             browser = pw.chromium.launch()
-            page = browser.new_page(viewport={"width": 1180, "height": 640}, device_scale_factor=2)
+            page = browser.new_page(viewport={"width": 1180, "height": 700}, device_scale_factor=2)
 
             page.goto("http://127.0.0.1:8751/")
             page.click("#ctl .row[data-id=btnFlash]")
-            page.screenshot(path=IMG / "studio-controls.png")
+            shot(page, IMG / "studio-controls.png")
 
             page.click("nav button[data-t=dlls]")
             page.fill("#folder", str(OUT / "net"))
             page.click("#scanbtn")
             page.click("#dllrows .row:has-text('FlashCore.dll')")
             page.wait_for_function("document.querySelector('#funcs').textContent.includes('Program(')")
-            page.screenshot(path=IMG / "studio-dlls.png")
+            shot(page, IMG / "studio-dlls.png")
 
             page.click("nav button[data-t=workflows]")
             page.fill("input[data-wf=flash][data-p=ecu]", "Gateway")
             page.fill("input[data-wf=flash][data-p=hex_file]", str(hexf))
             page.click("button[data-run=flash]")
-            time.sleep(1.6)                                   # mid-flash: progress bar moving
-            flasher_win.capture_as_image().save(IMG / "demoflasher.png")
+            status = flasher_win.child_window(auto_id="lblStatus")
+            while not status.window_text().startswith("Flashing"):   # past the file dialog
+                time.sleep(0.1)
+            time.sleep(1.2)                                   # mid-flash: progress bar moving
+            capture(flasher_win, IMG / "demoflasher.png")
             page.wait_for_selector("#wfout p.ok, #wfout p.bad", timeout=60_000)
-            page.screenshot(path=IMG / "studio-flash.png")
+            shot(page, IMG / "studio-flash.png")
 
             # calibration: measure, correct, then show the verify run in Studio
             s = Session(ca.load_target(), window=calib_win)
@@ -112,8 +136,8 @@ def main() -> None:
                 page.fill(f"input[data-wf=verify][data-p={k}]", v)
             page.click("button[data-run=verify]")
             page.wait_for_selector("#wfout p.ok, #wfout p.bad", timeout=60_000)
-            page.screenshot(path=IMG / "studio-calibration.png")
-            calib_win.capture_as_image().save(IMG / "democalibrator.png")
+            shot(page, IMG / "studio-calibration.png")
+            capture(calib_win, IMG / "democalibrator.png")
             (IMG / "calibration-run.txt").write_text(yaml.safe_dump(
                 {"before": round(before.values["measured"], 3), "offset": round(before.values["measured"] - 10, 3)}),
                 encoding="utf-8")

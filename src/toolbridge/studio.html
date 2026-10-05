@@ -41,7 +41,7 @@ async function load(){
       (w?`<p>${esc(w.event)} → <code>${esc(w.handler)}</code>${w.calls.length?' → <code>'+w.calls.map(esc).join('</code>, <code>')+'</code>':''}</p>`:'')+
       `<pre>tool.${verb}_${esc(c.id)}(${verb==='click'?'':'"…"'})\nPOST /${verb}/${esc(c.id)}</pre>`};
   $('#wfl').innerHTML=Object.entries(wfs).map(([n,w])=>`<div class="card"><b>${esc(n)}</b> <span class="tag">${w.steps} steps</span>`+
-    w.params.map(p=>`<p><label class="tag">${esc(p)}</label><input data-wf="${esc(n)}" data-p="${esc(p)}"></p>`).join('')+`<button class="go" data-run="${esc(n)}">▶ Try</button></div>`).join('')||'No workflows yet: <code>toolbridge record NAME</code>';
+    w.params.map(p=>`<p><label class="tag">${esc(p)}</label><input data-wf="${esc(n)}" data-p="${esc(p)}"></p>`).join('')+`<p><button class="go" data-run="${esc(n)}">▶ Try</button></p></div>`).join('')||'No workflows yet: <code>toolbridge record NAME</code>';
   $('#wfl').onclick=async e=>{const n=e.target.dataset.run;if(!n)return;const body={};document.querySelectorAll(`[data-wf="${n}"]`).forEach(i=>body[i.dataset.p]=i.value);
     $('#wfout').textContent='Running…';const r=await post('/workflows/'+n,body);
     $('#wfout').innerHTML=r.error?`<p class="bad">${esc(r.error)}</p>`:`<p class="${r.ok?'ok':'bad'}"><b>${r.ok?'✔ ok':'✘ failed'}</b> · ${esc(r.message)} · ${r.seconds.toFixed(1)} s</p>${Object.keys(r.values||{}).length?'<table>'+Object.entries(r.values).map(([k,v])=>`<tr><td class="tag">${esc(k)}</td><td><code>${esc(v)}</code></td></tr>`).join('')+'</table>':''}<pre>${r.log.map(esc).join('\n')}</pre>${r.screenshot?'<p class="tag">screenshot: '+esc(r.screenshot)+'</p>':''}`};
