@@ -15,6 +15,7 @@ def test_records_select_type_click(net_app, tmp_path):
     combo.select("ECU2")
     edit = net_app.child_window(auto_id="txtPath", control_type="Edit")
     edit.click_input(); edit.type_keys(r"C:\fw\app.hex", with_spaces=True)
+    time.sleep(0.5)       # a person does not click within microseconds of the last keystroke
     net_app.child_window(auto_id="btnFlash", control_type="Button").click_input()
     time.sleep(0.5)
     steps = rec.stop()
