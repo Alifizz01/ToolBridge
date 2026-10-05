@@ -2,6 +2,7 @@
 """What generated APIs and the REST server call: find controls robustly and act on them."""
 from __future__ import annotations
 
+import ctypes
 import difflib
 import re
 import subprocess
@@ -11,6 +12,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import ToolBridgeError
+
+_BM_CLICK = 0x00F5
 
 
 def match(root, auto_id=None, title=None, control_type=None) -> list:
@@ -89,10 +92,12 @@ class Session:
     def click(self, cid):
         with self.lock:
             w = self.find(cid)
-            try:
-                w.invoke()
-            except Exception:
-                w.click_input()
+            # UIA Invoke blocks until a modal dialog the button opens is closed, so native
+            # buttons get a posted BM_CLICK (returns at once); windowless ones fall back to Invoke.
+            if w.handle and ctypes.windll.user32.PostMessageW(w.handle, _BM_CLICK, 0, 0):
+                time.sleep(0.3)
+                return
+            w.invoke()
 
     def set_text(self, cid, value):
         with self.lock:

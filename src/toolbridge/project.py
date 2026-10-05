@@ -41,3 +41,7 @@ class Project:
         if not self.target_path.exists():
             raise ToolBridgeError(f"No scan in {self.root} yet. Run: toolbridge scan <app.exe> --project {self.root}")
         return json.loads(self.target_path.read_text(encoding="utf-8"))
+
+    def workflows(self) -> dict:
+        from .workflow import load_workflow
+        return {p.stem: load_workflow(p) for p in sorted(self.workflows_dir.glob("*.yaml"))}

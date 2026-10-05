@@ -1,0 +1,26 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12"]
+    env:
+      TOOLBRIDGE_UI: "1"          # the runner has a real desktop: drive the demo apps
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: "8.0.x" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ matrix.python }}" }
+      - name: build demo targets
+        shell: pwsh
+        run: ./demo/build.ps1
+      - run: pip install -e ".[dev]"
+      - run: pytest -v --timeout=120
+      - name: failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: "runs-${{ matrix.python }}", path: "**/runs/**", if-no-files-found: ignore }

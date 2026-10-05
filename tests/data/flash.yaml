@@ -1,0 +1,11 @@
+# tests/data/flash.yaml
+name: flash
+params: [ecu, hex_file]
+timeout_s: 30
+steps:
+  - {do: select, target: cmbEcu, value: "{ecu}"}
+  - {do: click, target: btnBrowse}
+  - {do: file_dialog, value: "{hex_file}"}
+  - {do: click, target: btnFlash}
+  - {do: wait, target: lblStatus, until: "^(Done|Error)"}
+result: {target: lblStatus, ok: "^Done"}

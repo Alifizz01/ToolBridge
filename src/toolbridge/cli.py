@@ -48,6 +48,25 @@ def _cmd_scan(a) -> int:
     return 0
 
 
+def _session(proj: Project):
+    from .runtime import Session
+    return Session(proj.load_target(), proj.config["deny"], proj.runs_dir)
+
+
+def _cmd_run(a) -> int:
+    from .workflow import run_workflow
+    proj = Project(a.project)
+    wfs = proj.workflows()
+    if a.name not in wfs:
+        raise ToolBridgeError(f"No workflow '{a.name}' (have: {', '.join(wfs) or 'none'})")
+    params = dict(kv.split("=", 1) for kv in a.params)
+    r = run_workflow(_session(proj), wfs[a.name], **params)
+    print(f"{'ok' if r.ok else 'FAILED'}: {r.message} ({r.seconds:.1f} s)")
+    if r.screenshot:
+        print(f"screenshot: {r.screenshot}")
+    return 0 if r.ok else 1
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="toolbridge", description=__doc__)
     ap.add_argument("--version", action="version", version=f"toolbridge {__version__}")
@@ -59,9 +78,12 @@ def main(argv=None) -> int:
     p = sub.add_parser("scan", help="start the app and list every control")
     p.add_argument("app"); p.add_argument("--dll", action="append")
     p.add_argument("--project", default="toolbridge-project")
+    p = sub.add_parser("run", help="run a recorded workflow: toolbridge run flash ecu=ECU1 hex_file=app.hex")
+    p.add_argument("name"); p.add_argument("params", nargs="*")
+    p.add_argument("--project", default="toolbridge-project")
     a = ap.parse_args(argv)
     try:
-        return {"inspect": _cmd_inspect, "scan": _cmd_scan}[a.cmd](a)
+        return {"inspect": _cmd_inspect, "scan": _cmd_scan, "run": _cmd_run}[a.cmd](a)
     except ToolBridgeError as exc:
         print(f"toolbridge: {exc}", file=sys.stderr)
         return 1
