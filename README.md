@@ -1,11 +1,17 @@
-# ToolBridge
+<p align="center">
+  <img src="docs/logo.svg" width="96" alt="ToolBridge logo: an arch bridge">
+</p>
 
-**An API for Windows tools that never got one.**
+<h1 align="center">ToolBridge</h1>
 
-[![ci](https://github.com/Alifizz01/ToolBridge/actions/workflows/ci.yml/badge.svg)](https://github.com/Alifizz01/ToolBridge/actions/workflows/ci.yml)
-![python](https://img.shields.io/badge/python-3.10%2B-1f6feb)
-![platform](https://img.shields.io/badge/platform-Windows-555)
-![license](https://img.shields.io/badge/license-MIT-2b8a3e)
+<p align="center"><b>An API for Windows tools that never got one.</b></p>
+
+<p align="center">
+  <a href="https://github.com/Alifizz01/ToolBridge/actions/workflows/ci.yml"><img src="https://github.com/Alifizz01/ToolBridge/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
+  <img src="https://img.shields.io/badge/python-3.10%2B-0b62d6" alt="python 3.10+">
+  <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
+  <img src="https://img.shields.io/badge/license-MIT-2b8a3e" alt="MIT">
+</p>
 
 A lot of engineering software only has a GUI: the supplier's ECU flasher, the calibration program
 that came with the test stand, the configurator nobody has the source code for. When a test bench
