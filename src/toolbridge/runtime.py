@@ -34,6 +34,7 @@ class Result:
     seconds: float
     log: list[str] = field(default_factory=list)
     screenshot: str | None = None
+    values: dict = field(default_factory=dict)      # what `read` steps stored, e.g. {"measured": 10.02}
 
 
 class Session:
@@ -132,6 +133,22 @@ class Session:
                 except Exception:
                     continue
             return ""
+
+    def keys(self, cid, keys: str):
+        """Type keys (pywinauto syntax: '{ENTER}', '^s' = Ctrl+S) into a control, or the window."""
+        with self.lock:
+            w = self.find(cid) if cid else self.start().window
+            w.set_focus()
+            w.type_keys(keys, with_spaces=True, set_foreground=True)
+
+    def menu(self, path: str):
+        """Open a menu item: 'File > Save as'."""
+        with self.lock:
+            items = [p.strip() for p in re.split(r">|->", path) if p.strip()]
+            try:
+                self.start().window.menu_select("->".join(items))
+            except Exception as exc:
+                raise ToolBridgeError(f"Could not open menu '{path}': {exc}") from exc
 
     def wait_text(self, cid, pattern: str, timeout_s: float) -> str:
         rx, end, last = re.compile(pattern), time.monotonic() + timeout_s, ""

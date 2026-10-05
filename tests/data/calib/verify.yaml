@@ -1,0 +1,8 @@
+name: verify
+params: [setpoint, low, high]
+steps:
+  - {do: set, target: txtSetpoint, value: "{setpoint}"}
+  - {do: click, target: btnMeasure}
+  - {do: wait, target: lblStatus, until: "^Ready"}
+  - {do: read, target: lblMeasured, save_as: measured, as: number}
+  - {do: expect, value: "{measured}", min: "{low}", max: "{high}"}

@@ -1,7 +1,9 @@
-# demo/build.ps1 — builds both demos into demo/out/{net,native}. Needs the .NET 8+ SDK and MSVC (VS 2022 C++).
+# demo/build.ps1 — builds the demo tools into demo/out/{net,calib,native}. Needs the .NET 8+ SDK and MSVC (VS 2022 C++).
 $ErrorActionPreference = "Stop"
 $here = $PSScriptRoot
 dotnet publish "$here/DemoFlasher.NET/DemoFlasher/DemoFlasher.csproj" -c Release -o "$here/out/net" --nologo -v q
+if ($LASTEXITCODE) { throw "dotnet publish failed" }
+dotnet publish "$here/DemoCalibrator/DemoCalibrator.csproj" -c Release -o "$here/out/calib" --nologo -v q
 if ($LASTEXITCODE) { throw "dotnet publish failed" }
 $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
 $out = "$here/out/native"; New-Item -ItemType Directory -Force $out | Out-Null

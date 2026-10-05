@@ -60,7 +60,12 @@ class Recorder:
                 self.steps.append({"do": "file_dialog", "value": val})
             else:
                 do = _VALUE_TYPES[ctype]
-                self.steps.append({"do": do, "target": cid, "value": val if do != "check" else val == "1"})
+                step = {"do": do, "target": cid, "value": val if do != "check" else val == "1"}
+                last = self.steps[-1] if self.steps else {}
+                if last.get("do") == do and last.get("target") == cid:
+                    self.steps[-1] = step        # still typing in the same box: keep the final value
+                else:
+                    self.steps.append(step)
         self._values = now
 
     # ---- clicks ----

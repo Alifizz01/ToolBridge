@@ -1,0 +1,5 @@
+name: save
+steps:
+  - {do: click, target: btnSave}
+  - {do: wait, target: lblStatus, until: "^Saved"}
+  - {do: read, target: lblStatus, save_as: confirmation}

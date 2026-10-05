@@ -1,0 +1,6 @@
+name: apply_offset
+params: [offset]
+steps:
+  - {do: set, target: txtOffset, value: "{offset}"}
+  - {do: click, target: btnApply}
+  - {do: wait, target: lblStatus, until: "^Offset applied"}

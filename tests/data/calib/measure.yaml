@@ -1,0 +1,7 @@
+name: measure
+params: [setpoint]
+steps:
+  - {do: set, target: txtSetpoint, value: "{setpoint}"}
+  - {do: click, target: btnMeasure}
+  - {do: wait, target: lblStatus, until: "^Ready"}
+  - {do: read, target: lblMeasured, save_as: measured, as: number}

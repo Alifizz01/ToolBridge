@@ -43,5 +43,6 @@ class Project:
         return json.loads(self.target_path.read_text(encoding="utf-8"))
 
     def workflows(self) -> dict:
-        from .workflow import load_workflow
+        from .workflow import load_steps, load_workflow
+        load_steps(self.root / "steps.py")          # the project's own step types, if any
         return {p.stem: load_workflow(p) for p in sorted(self.workflows_dir.glob("*.yaml"))}

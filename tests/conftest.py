@@ -36,3 +36,10 @@ def native_app():
     p, w = _start(OUT / "native" / "DemoFlasherNative.exe")
     yield w
     p.kill()
+
+
+@pytest.fixture
+def calib_app():
+    p, w = _start(OUT / "calib" / "DemoCalibrator.exe")
+    yield w
+    p.kill()
