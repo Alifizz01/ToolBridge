@@ -34,6 +34,20 @@ def _cmd_inspect(a) -> int:
     return 0
 
 
+def _cmd_scan(a) -> int:
+    from .scan.ui import scan
+    proj = Project(a.project)
+    dlls = [Path(d) for d in (a.dll or proj.config["dlls"])]
+    t = scan(proj, Path(a.app), dlls)
+    print(f"{len(t['controls'])} controls in '{t['window']}', "
+          f"{len(t['dotnet']['wiring'])} traced handlers, {len(t['native']['exports'])} native exports")
+    for w in t["dotnet"]["wiring"]:
+        if w["calls"]:
+            print(f"  {w['control']}.{w['event']} -> {', '.join(w['calls'])}")
+    print(f"-> {proj.target_path}")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="toolbridge", description=__doc__)
     ap.add_argument("--version", action="version", version=f"toolbridge {__version__}")
@@ -42,9 +56,12 @@ def main(argv=None) -> int:
     p.add_argument("folder"); p.add_argument("--dll"); p.add_argument("--app")
     p.add_argument("--all", action="store_true", help="also show runtime/system DLLs")
     p.add_argument("--project", default="toolbridge-project")
+    p = sub.add_parser("scan", help="start the app and list every control")
+    p.add_argument("app"); p.add_argument("--dll", action="append")
+    p.add_argument("--project", default="toolbridge-project")
     a = ap.parse_args(argv)
     try:
-        return {"inspect": _cmd_inspect}[a.cmd](a)
+        return {"inspect": _cmd_inspect, "scan": _cmd_scan}[a.cmd](a)
     except ToolBridgeError as exc:
         print(f"toolbridge: {exc}", file=sys.stderr)
         return 1
