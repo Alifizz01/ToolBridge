@@ -95,6 +95,15 @@ def _cmd_generate(a) -> int:
     return 0
 
 
+def _cmd_serve(a) -> int:
+    import uvicorn
+    from .server import create_app
+    app = create_app(Project(a.project))
+    print(f"Studio and REST API: http://{a.host}:{a.port}   (API docs: /docs)")
+    uvicorn.run(app, host=a.host, port=a.port, log_level="warning")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="toolbridge", description=__doc__)
     ap.add_argument("--version", action="version", version=f"toolbridge {__version__}")
@@ -113,9 +122,12 @@ def main(argv=None) -> int:
     p.add_argument("name"); p.add_argument("--project", default="toolbridge-project")
     p = sub.add_parser("generate", help="write the Python package for this tool")
     p.add_argument("--package"); p.add_argument("--project", default="toolbridge-project")
+    p = sub.add_parser("serve", help="REST API + Studio for this tool")
+    p.add_argument("--host", default="127.0.0.1"); p.add_argument("--port", type=int, default=8750)
+    p.add_argument("--project", default="toolbridge-project")
     a = ap.parse_args(argv)
     try:
-        return {"inspect": _cmd_inspect, "scan": _cmd_scan, "run": _cmd_run, "record": _cmd_record, "generate": _cmd_generate}[a.cmd](a)
+        return {"inspect": _cmd_inspect, "scan": _cmd_scan, "run": _cmd_run, "record": _cmd_record, "generate": _cmd_generate, "serve": _cmd_serve}[a.cmd](a)
     except ToolBridgeError as exc:
         print(f"toolbridge: {exc}", file=sys.stderr)
         return 1

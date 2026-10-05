@@ -1,0 +1,57 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ToolBridge · {{TITLE}}</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--ink:#14171c;--muted:#5b6472;--line:#dfe3e8;--accent:#0b62d6;--ok:#1a7f37;--bad:#c62828}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1216;--panel:#171b21;--ink:#e6e9ee;--muted:#9aa4b2;--line:#29303a;--accent:#5aa2ff;--ok:#4cc26a;--bad:#ff6b6b}}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;gap:12px;align-items:baseline;padding:14px 20px;border-bottom:1px solid var(--line)}
+header b{font-size:17px}header span{color:var(--muted)}
+nav{display:flex;gap:4px;padding:8px 20px}nav button{border:0;background:none;color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit}
+nav button.on{background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+main{padding:0 20px 20px}section{display:none}section.on{display:grid;gap:14px;grid-template-columns:minmax(240px,1fr) 2fr}
+@media (max-width:760px){section.on{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto}
+.row{padding:6px 8px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;gap:8px}.row:hover,.row.sel{background:var(--bg)}
+.tag{font-size:12px;color:var(--muted)}code,pre{font:12.5px ui-monospace,Consolas,monospace}pre{background:var(--bg);padding:8px;border-radius:6px;white-space:pre-wrap}
+input{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:100%}
+button.go{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:6px 14px;cursor:pointer;font:inherit}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+</style></head><body>
+<header><b>ToolBridge</b><span>{{TITLE}}</span><span id="sum"></span></header>
+<nav><button data-t="dlls">DLLs</button><button data-t="controls" class="on">Controls</button><button data-t="workflows">Workflows</button><button data-t="direct">Direct</button></nav>
+<main>
+<section id="dlls"><div class="card"><input id="folder" placeholder="Tool folder, e.g. C:\Program Files\Vendor\Flasher"><br><br><button class="go" id="scanbtn">Inspect</button><div id="dllrows"></div></div><div class="card"><pre id="funcs">Pick a DLL to see its functions.</pre></div></section>
+<section id="controls" class="on"><div class="card" id="ctl"></div><div class="card" id="ctldetail">Pick a control.</div></section>
+<section id="workflows"><div class="card" id="wfl"></div><div class="card" id="wfout">Run a workflow to see its result.</div></section>
+<section id="direct"><div class="card" id="dir"></div><div class="card"><pre id="dirout"></pre></div></section>
+</main>
+<script>
+const $=s=>document.querySelector(s), j=(u,o)=>fetch(u,o).then(r=>r.json()), post=(u,b)=>j(u,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)});
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,section').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#'+b.dataset.t).classList.add('on')});
+let report={};
+async function load(){
+  report=await j('/report'); const ctls=await j('/controls'), wfs=await j('/workflows');
+  const wiring=Object.fromEntries((report.dotnet?.wiring||[]).map(w=>[w.control,w]));
+  $('#sum').textContent=`${ctls.length} controls · ${Object.keys(wfs).length} workflows`;
+  $('#ctl').innerHTML=ctls.map(c=>`<div class="row" data-id="${esc(c.id)}"><span>${esc(c.label||c.id)}</span><span class="tag">${esc(c.type)}</span></div>`).join('');
+  $('#ctl').onclick=e=>{const r=e.target.closest('.row');if(!r)return;document.querySelectorAll('#ctl .row').forEach(x=>x.classList.toggle('sel',x===r));
+    const c=ctls.find(x=>x.id===r.dataset.id), w=wiring[c.automation_id]; const verb=c.type==='Edit'?'set':c.type==='ComboBox'?'select':'click';
+    $('#ctldetail').innerHTML=`<b>${esc(c.type)} "${esc(c.label)}"</b><p class="tag">automation id <code>${esc(c.automation_id||'—')}</code> · window ${esc(c.window)}</p>`+
+      (w?`<p>${esc(w.event)} → <code>${esc(w.handler)}</code>${w.calls.length?' → <code>'+w.calls.map(esc).join('</code>, <code>')+'</code>':''}</p>`:'')+
+      `<pre>tool.${verb}_${esc(c.id)}(${verb==='click'?'':'"…"'})\nPOST /${verb}/${esc(c.id)}</pre>`};
+  $('#wfl').innerHTML=Object.entries(wfs).map(([n,w])=>`<div class="card"><b>${esc(n)}</b> <span class="tag">${w.steps} steps</span>`+
+    w.params.map(p=>`<p><label class="tag">${esc(p)}</label><input data-wf="${esc(n)}" data-p="${esc(p)}"></p>`).join('')+`<button class="go" data-run="${esc(n)}">▶ Try</button></div>`).join('')||'No workflows yet: <code>toolbridge record NAME</code>';
+  $('#wfl').onclick=async e=>{const n=e.target.dataset.run;if(!n)return;const body={};document.querySelectorAll(`[data-wf="${n}"]`).forEach(i=>body[i.dataset.p]=i.value);
+    $('#wfout').textContent='Running…';const r=await post('/workflows/'+n,body);
+    $('#wfout').innerHTML=r.error?`<p class="bad">${esc(r.error)}</p>`:`<p class="${r.ok?'ok':'bad'}"><b>${r.ok?'✔ ok':'✘ failed'}</b> · ${esc(r.message)} · ${r.seconds.toFixed(1)} s</p><pre>${r.log.map(esc).join('\n')}</pre>${r.screenshot?'<p class="tag">screenshot: '+esc(r.screenshot)+'</p>':''}`};
+  const direct=report.config?.direct||[];
+  $('#dir').innerHTML=direct.map(d=>`<p><b><code>${esc(d)}</code></b><input data-d="${esc(d)}" placeholder='args as JSON, e.g. ["C:/fw/app.hex","ECU1",null]'><br><br><button class="go" data-call="${esc(d)}">Call</button></p>`).join('')||'Nothing enabled. Add method names under <code>direct:</code> in toolbridge.yaml.';
+  $('#dir').onclick=async e=>{const d=e.target.dataset.call;if(!d)return;let args=[];try{args=JSON.parse(document.querySelector(`[data-d="${d}"]`).value||'[]')}catch{}
+    $('#dirout').textContent=JSON.stringify(await post('/direct/'+d,{args}),null,2)};
+}
+$('#scanbtn').onclick=async()=>{const rows=await j('/inspect?folder='+encodeURIComponent($('#folder').value));
+  $('#dllrows').innerHTML=rows.error?`<p class="bad">${esc(rows.error)}</p>`:rows.map(r=>`<div class="row" data-path="${esc(r.path)}"><span>${esc(r.file)}</span><span class="tag">${esc(r.kind)} · ${esc(r.bits)} · ${esc(r.used||'unused')} · ${r.functions||'–'}</span></div>`).join('')};
+$('#dllrows').onclick=async e=>{const r=e.target.closest('.row');if(!r)return;const f=await j('/functions?path='+encodeURIComponent(r.dataset.path));$('#funcs').textContent=Array.isArray(f)?f.join('\n')||'(no functions)':f.error};
+load();
+</script></body></html>
