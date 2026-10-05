@@ -89,7 +89,7 @@ def _expect(s, st, ctx):
     """Check a value: of a control (target) or of something read earlier (value: "{name}").
     match: regex, and/or min / max for numbers."""
     text = s.read(st["target"]) if "target" in st else str(st.get("value", ""))
-    what = st.get("target") or st.get("value")
+    what = st.get("target") or str(st.get("_src", st.get("value"))).strip("{}")   # "{measured}" -> measured
     if "match" in st and not re.search(st["match"], text):
         raise ToolBridgeError(f"{what} is '{text}', expected to match '{st['match']}'")
     if "min" in st or "max" in st:
@@ -166,7 +166,7 @@ def run_workflow(session: Session, wf: dict, **params) -> Result:
     with session.lock:
         try:
             for st in wf["steps"]:
-                st = {k: _fill(v, ctx) if k in _FILLED else v for k, v in st.items()}
+                st = {**{k: _fill(v, ctx) if k in _FILLED else v for k, v in st.items()}, "_src": st.get("value")}
                 log.append(" ".join(str(st[k]) for k in ("do", "target", "value") if st.get(k) not in (None, "")))
                 _STEPS[st["do"]](session, st, ctx)
                 pop = session.popup()

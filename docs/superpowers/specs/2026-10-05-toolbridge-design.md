@@ -129,3 +129,14 @@ pytest runs on `windows-latest`, which has an interactive desktop:
 - A public repo `Alifizz01/ToolBridge`; commits authored as Alif only.
 - A README with the problem statement, a pipeline diagram, Studio screenshots and a GIF of record → API call.
 - `docs/` with: getting started on your own tool, the workflow file reference, and the limits (what UIA can't see, e.g. custom-drawn controls).
+
+## Addendum (2026-10-05): general, not flasher-specific
+
+Second target use case: machine and instrument calibration. Added during implementation:
+- workflow steps `read` (stores text, or the first number in it, as a value), `expect` (regex and/or min/max), `keys`, `menu`, `sleep`
+- `Result.values`
+- `result:` is now optional
+- custom step types via `register_step` in the project's `steps.py`
+- a third demo, DemoCalibrator
+
+Loops stay in Python on top of the generated API.

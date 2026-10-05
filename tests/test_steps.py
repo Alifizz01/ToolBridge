@@ -41,6 +41,8 @@ def test_read_then_expect_within_tolerance(tmp_path):
                         {"do": "expect", "value": "{measured}", "min": "{lo}", "max": 10.05}], params=["lo"])
     r = run_workflow(FakeSession({"lblMeasured": "10,02 V"}), wf, lo=9.95)
     assert r.ok and r.values == {"measured": 10.02}
+    r = run_workflow(FakeSession({"lblMeasured": "10,31 V"}), wf, lo=9.95)
+    assert not r.ok and r.message == "measured is 10.31, expected between 9.95 and 10.05"
 
 
 def test_out_of_tolerance_fails_with_the_numbers(tmp_path):

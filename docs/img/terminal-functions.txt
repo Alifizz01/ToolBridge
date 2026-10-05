@@ -1,4 +1,4 @@
   FlashCore.FlashService.Program(string path, string ecu, Action<int> progress) -> long
   FlashCore.FlashService.KnownEcus() -> string[]
 
-FlashCore.dll added to %TEMP%\toolbridge-shots-8maa6x05\cli\toolbridge.yaml
+FlashCore.dll added to %TEMP%\toolbridge-shots-cxawcciy\cli\toolbridge.yaml
