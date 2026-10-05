@@ -15,7 +15,7 @@ main{padding:0 20px 20px}section{display:none}section.on{display:grid;gap:14px;g
 .tag{font-size:12px;color:var(--muted)}code,pre{font:12.5px ui-monospace,Consolas,monospace}pre{background:var(--bg);padding:8px;border-radius:6px;white-space:pre-wrap}
 input{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:100%}
 button.go{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:6px 14px;cursor:pointer;font:inherit}
-.ok{color:var(--ok)}.bad{color:var(--bad)}
+.ok{color:var(--ok)}table{border-collapse:collapse;margin:6px 0}td{padding:2px 12px 2px 0}.bad{color:var(--bad)}
 </style></head><body>
 <header><b>ToolBridge</b><span>{{TITLE}}</span><span id="sum"></span></header>
 <nav><button data-t="dlls">DLLs</button><button data-t="controls" class="on">Controls</button><button data-t="workflows">Workflows</button><button data-t="direct">Direct</button></nav>
@@ -44,7 +44,7 @@ async function load(){
     w.params.map(p=>`<p><label class="tag">${esc(p)}</label><input data-wf="${esc(n)}" data-p="${esc(p)}"></p>`).join('')+`<button class="go" data-run="${esc(n)}">▶ Try</button></div>`).join('')||'No workflows yet: <code>toolbridge record NAME</code>';
   $('#wfl').onclick=async e=>{const n=e.target.dataset.run;if(!n)return;const body={};document.querySelectorAll(`[data-wf="${n}"]`).forEach(i=>body[i.dataset.p]=i.value);
     $('#wfout').textContent='Running…';const r=await post('/workflows/'+n,body);
-    $('#wfout').innerHTML=r.error?`<p class="bad">${esc(r.error)}</p>`:`<p class="${r.ok?'ok':'bad'}"><b>${r.ok?'✔ ok':'✘ failed'}</b> · ${esc(r.message)} · ${r.seconds.toFixed(1)} s</p><pre>${r.log.map(esc).join('\n')}</pre>${r.screenshot?'<p class="tag">screenshot: '+esc(r.screenshot)+'</p>':''}`};
+    $('#wfout').innerHTML=r.error?`<p class="bad">${esc(r.error)}</p>`:`<p class="${r.ok?'ok':'bad'}"><b>${r.ok?'✔ ok':'✘ failed'}</b> · ${esc(r.message)} · ${r.seconds.toFixed(1)} s</p>${Object.keys(r.values||{}).length?'<table>'+Object.entries(r.values).map(([k,v])=>`<tr><td class="tag">${esc(k)}</td><td><code>${esc(v)}</code></td></tr>`).join('')+'</table>':''}<pre>${r.log.map(esc).join('\n')}</pre>${r.screenshot?'<p class="tag">screenshot: '+esc(r.screenshot)+'</p>':''}`};
   const direct=report.config?.direct||[];
   $('#dir').innerHTML=direct.map(d=>`<p><b><code>${esc(d)}</code></b><input data-d="${esc(d)}" placeholder='args as JSON, e.g. ["C:/fw/app.hex","ECU1",null]'><br><br><button class="go" data-call="${esc(d)}">Call</button></p>`).join('')||'Nothing enabled. Add method names under <code>direct:</code> in toolbridge.yaml.';
   $('#dir').onclick=async e=>{const d=e.target.dataset.call;if(!d)return;let args=[];try{args=JSON.parse(document.querySelector(`[data-d="${d}"]`).value||'[]')}catch{}

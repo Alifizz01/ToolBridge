@@ -1,0 +1,18 @@
+name: screenshots
+on: workflow_dispatch          # run by hand: gh workflow run screenshots.yml
+jobs:
+  shots:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: "8.0.x" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - shell: pwsh
+        run: ./demo/build.ps1
+      - run: pip install -e ".[dev]" playwright
+      - run: python -m playwright install chromium
+      - run: python tools/screenshots.py
+      - uses: actions/upload-artifact@v4
+        with: { name: docs-img, path: docs/img }
